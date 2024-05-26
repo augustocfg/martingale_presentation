@@ -1,0 +1,729 @@
+---
+title: "Martingales e Asset Pricing"
+author: "Augusto César de Freitas Gurgel"
+subtitle: "Programa de Pós-Graduação em Economia - PPGE USP"
+date: today
+date-format: DD/MM/YY
+format: revealjs
+editor: visual
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(quantmod)
+library(tidyverse)
+library(ggplot2)
+library(tidyquant)
+library(timetk)
+library(broom)
+library(GetBCBData)
+library(knitr)
+library(kableExtra)
+```
+
+## Índice
+
+-   Martingale
+
+-   Asset Pricing
+
+-   Modelos
+
+    -   CAPM
+
+    -   Option Tree Pricing
+
+## Martingale {.center}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+```
+
+## O que é um Martingale?
+
+-   Lidamos com um processo estocástico $X$ que assume diferentes valores ao longo do tempo $\{T : t \in [0,\infty]\}$ , criando uma sequência $\{X_t\}$.
+
+-   Cada valor da nossa variável aleatória no tempo é inserido em um conjunto de informações $\{I_t:t ∈ [0,\infty]\}$, do qual $I_0 \subset I_1 \subset \space ... \space \subset I_t$.
+
+## O que é um Martingale?
+
+-   As propriedades definidoras de um martingale são:
+
+    -   $X_t$ é conhecido, dado o conjunto $I_t$.
+
+    -   $E(X_t) < \infty$.
+
+    -   $E(X_T) = X_t$.
+
+-   Ou seja, a melhor previsão de valores futuros não observados é o último valor da sequência $\{X_t\}$.
+
+-   Os movimentos dos martingales são impossíveis de prever.
+
+-   Note que $E(X_{t+u} - X_t) = 0; \space u> 0$
+
+## Passeio Aleatório, um exemplo de Martingale:
+
+``` r
+# Simulando o passeio aleatório
+
+passeio_aleatorio <- 0
+
+for (i in 2:100) {
+  
+  resultado <- sample(c(0,1), 1, replace = TRUE)
+  
+  # Determinando se o próximo passo é para cima ou para baixo
+  if (resultado == 1) {
+    passeio_aleatorio[i] <- passeio_aleatorio[i - 1] + 1  # Movendo para cima
+  } else {
+    passeio_aleatorio[i] <- passeio_aleatorio[i - 1] - 1  # Movendo para baixo
+  }
+}
+```
+
+## Passeio Aleatório, um exemplo de Martingale:
+
+```{r}
+# Simulando o passeio aleatório
+
+passeio_aleatorio <- 0
+
+for (i in 2:100) {
+  
+  resultado <- sample(c(0,1), 1, replace = TRUE)
+  
+  # Determinando se o próximo passo é para cima ou para baixo
+  if (resultado == 1) {
+    passeio_aleatorio[i] <- passeio_aleatorio[i - 1] + 1  # Movendo para cima
+  } else {
+    passeio_aleatorio[i] <- passeio_aleatorio[i - 1] - 1  # Movendo para baixo
+  }
+}
+
+# Plotando o passeio aleatório
+ggplot(tibble(tempo = 1:length(passeio_aleatorio),valor = passeio_aleatorio), aes(tempo,valor)) +
+  geom_line(col= 'lightblue3',size = 1.2) +
+  geom_point(col = 'gray30') +
+  ylab('Valor') +
+  xlab('Tempo') +
+  theme_light() +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text  = element_text(face = 'bold', colour = 'black'))
+```
+
+## Asset Pricing {.center}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Asset Pricing
+
+-   O apreçamento de ativos utiliza-se do conceito de arbitragem. Arbitragem significa tomar diferentes posições em ativos diferentes que garantem um lucro maior do que uma posição em ativos "sem risco". (Títulos do Tesouro, Poupança, entre outros).
+
+-   Se o lucro existir, então dizemos que há uma oportunidade de arbitragem.
+
+-   Dizemos que um ativo está corretamente precificado quando não há oportunidade de nenhum tipo de arbitragem.
+
+## Asset Pricing
+
+-   Saber o preço livre de arbitragem de um ativo nos permite determinar o verdadeiro valor de nosso ativo.
+
+-   Ou para comparar o preço *justo* com o atual valor observado. Se o preço justo for maior que o valor observado, então o ativo está *barato* e uma opção de compra é bem vinda.
+
+-   Em um mundo com mercados financeiros eficientes (ausência de informação assimétrica, participantes são price-takers,...) , os ativos se comportariam como martingales.
+
+## Asset Pricing
+
+-   Considere a seguinte matriz:
+
+    $\begin{bmatrix}1\\S_t \\C_t\end{bmatrix} =\begin{bmatrix}1+r & 1+r\\S_1(t+1) & S_2(t+1)\\C_1(t+1) & C_2(t+1)\end{bmatrix} \begin{bmatrix}\psi_1 \\\psi_2\end{bmatrix}$
+
+-   Uso de probabilidades sintéticas $Q_1$ e $Q_2$
+
+-   Se calcularmos a expectativa utilizando as probabilidades sintéticas para cada ativo e dividindo pela taxa livre de risco $(1+r)$, obtemos o atual valor do ativo. Ao longo que a igualdade persista, não temos oportunidade de arbitragem.
+
+## Asset Pricing
+
+-   Em resumo, $1+ r = \frac{E_Q[S_t(t+1)]}{S_t}$.
+
+-   Tudo gira em torno de encontrar a taxa neutra de risco, e ao normalizarmos o valor do ativo por ela, temos um martingale.
+
+-   $X_{t+s}= \frac{S_{t+s}}{(1+r)^s}$
+
+## Modelos {.center}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Modelos
+
+-   A partir da noção de martingale, foram criados vários modelos para encontrar oportunidades de arbitragem, cálculo de risco sistêmico, comparação de carteiras , fazer benchmarks e previsão de preços.
+
+-   Um dos modelos é o CAPM, Capital Asset Pricing Model.
+
+## CAPM
+
+-   Investidores escolhem carteiras que entendem ter um retorno máximo dado o risco.
+
+-   Investidores compartilham uma mesma visão sobre o retorno esperado.
+
+-   O portfólio do mercado é uma combinação convexa de todos os portfolios, e é *mean variance efficient.*
+
+-   Por último, calculamos o $\beta$ que é a captura da relação linear entre um ativo com o portfólio do mercado.
+
+## CAPM
+
+-   $\beta = \frac{cov(am)}{var(m)}$
+
+-   $E_a = E_0 + \beta(E_m - E_0)$
+
+-   ::: {.callout-note appearance="minimal" icon="false"}
+    $E_a$ = retorno esperado do ativo.
+
+    $E_0$ = Retorno de um portfólio sem correlação com um o portfólio do mercado.
+    :::
+
+-   O investidor deve ganhar um prêmio de risco por investir em ativos menos seguros de forma sistêmica.
+
+## CAPM
+
+``` {.r style="color: gray;"}
+#Ações escolhidas aleatoriamente
+acoes <- c("HETA4.SA",  "BALM3.SA", "TPIS3.SA",
+           "GFSA3.SA", "EQMA3B.SA", "VALE3.SA",
+           "LOGN3.SA" )
+
+#Coleta das cotações das ações ao longo do tempo
+getSymbols(acoes,
+           auto.assign = TRUE,
+           warnings = FALSE,
+           from = as.Date('2015-12-01'))  |> 
+  map(~Ad(get(.)))  |> 
+  reduce(merge) |> 
+  `colnames<-`(acoes) -> cotacoes 
+
+# Calculando os retornos mensais
+to.monthly(cotacoes,
+           indexAt = "lastof",
+           OHLC = FALSE) |>
+  Return.calculate(method = "log") |> 
+  na.omit() -> cotacoes_mensais 
+```
+
+## CAPM
+
+``` r
+
+getSymbols('^BVSP',
+           from = as.Date('2015-12-01'),
+           auto.assign = TRUE,
+           warnings = FALSE,
+           src = 'yahoo',) -> ibov
+
+
+# Transforma os dados em mensais e em retornos
+ 
+
+BVSP$BVSP.Adjusted  |> 
+`colnames<-`('BVSP')  |> 
+to.monthly(indexAt = 'lastof', OHLC = FALSE)  |> 
+Return.calculate(method = "log") |> 
+na.omit() -> retorno_ibov
+```
+
+## CAPM
+
+``` r
+# coletando dados do CDI como o rendimento livre de risco.
+
+GetBCBData::gbcbd_get_series(12)[1:2] |> 
+  rename(periodo = `ref.date`,
+         CDI = value) |> 
+  mutate(mes = as.yearmon(periodo)) |> 
+  group_by(mes) |>
+  mutate(CDI = cumprod(1+ CDI/100) - 1) |> 
+  slice(n()) |> 
+  filter(mes > 'dez 2015') |> 
+  mutate(periodo = as.Date(mes,frac = 1)) |> 
+  ungroup() |>
+  select(1,2) |> 
+  as.xts() -> retorno_cdi
+```
+
+## CAPM
+
+-   Últimos 6 meses de retorno:
+
+```{r warning=FALSE,warning=FALSE}
+
+#Ações escolhidas aleatoriamente
+acoes <- c("HETA4.SA",  "BALM3.SA", "TPIS3.SA",  "GFSA3.SA", "EQMA3B.SA", "VALE3.SA","LOGN3.SA" )
+
+#Coleta das cotações das ações ao longo do tempo
+getSymbols(acoes,
+           auto.assign = TRUE,
+           warnings = FALSE,
+           from = as.Date('2015-12-01'))  |>
+  map(~Ad(get(.)))  |>
+  reduce(merge) -> cotacoes
+
+
+
+colnames(cotacoes) <- stringr::str_remove(colnames(cotacoes), '\\.SA\\.Adjusted')
+
+ # Calculando os retornos mensais
+to.monthly(cotacoes,
+           indexAt = "lastof",
+           OHLC = FALSE) |>
+  Return.calculate(method = "log") |>
+  na.omit() -> cotacoes_mensais
+
+Sys.sleep(2)
+
+getSymbols('^BVSP',
+           from = as.Date('2015-12-01'),
+           auto.assign = TRUE,
+           warnings = FALSE,
+           src = 'yahoo',) -> ibov
+
+
+# Transforma os dados em mensais e em retornos
+
+BVSP <- BVSP$BVSP.Adjusted
+colnames(BVSP) <- 'BVSP' 
+  
+BVSP$BVSP|>
+  to.monthly(indexAt = 'lastof', OHLC = FALSE)  |>
+  Return.calculate(method = "log") |>
+  na.omit() -> retorno_ibov
+
+Sys.sleep(2)
+
+GetBCBData::gbcbd_get_series(12)[1:2] |>
+  rename(periodo = `ref.date`,
+         CDI = value) |>
+  mutate(mes = as.yearmon(periodo)) |>
+  group_by(mes) |>
+  mutate(CDI = cumprod(1+ CDI/100) - 1) |>
+  slice(n()) |>
+  filter(mes > 'dez 2015') |>
+  mutate(periodo = as.Date(mes,frac = 1)) |>
+  ungroup() |>
+  select(1,2) |>
+  as.xts() -> retorno_cdi
+
+retorno_cdi |>
+  cbind(retorno_ibov,cotacoes_mensais) |>
+  as_tibble() |> 
+  mutate('premio_risco' = `BVSP` - `CDI`) |> 
+  mutate(across(everything(), ~round(.x * 100,2))) -> retornos_gerais
+
+colnames(retornos_gerais) <- paste(colnames(retornos_gerais),'(%)')
+
+retornos_gerais |> 
+  mutate(
+    across(everything(), ~ cell_spec(.x,
+                                     color = ifelse(.x < 0,
+                                                    "red",
+                                                    "green"),
+                                     )
+           )
+    ) |> 
+  tail() |> 
+  knitr::kable()
+```
+
+## CAPM
+
+-   Cálculo dos betas de cada ação:
+
+    ``` r
+
+    CAPM.beta(Ra = cotacoes_mensais, Rb = retorno_ibov, Rf = retorno_cdi)
+    ```
+
+```{r}
+CAPM.beta(Ra = cotacoes_mensais, Rb = retorno_ibov, Rf = retorno_cdi)
+
+```
+
+## CAPM
+
+```{r}
+# Calcula o retorno do portfolio
+ 
+portfolio_return <- Return.portfolio(cotacoes_mensais)
+ 
+ 
+portfolio_return_tbl <- portfolio_return |>
+tk_tbl(preserve_index = TRUE,
+rename_index = "date")
+ 
+premio_tbl <- cbind(retorno_cdi,retorno_ibov) |>
+  tk_tbl(preserve_index = TRUE,
+         rename_index = "date") |>
+  mutate(premium_return = BVSP - CDI) |> 
+  select('date','premium_return')
+ 
+# Plota o gráfico de dispersão
+ 
+portfolio_return_tbl |>
+left_join(premio_tbl, by = "date") |>
+ggplot(aes(x = premium_return, y = portfolio.returns))+
+geom_point(color = "#282f6b")+
+geom_smooth(method = "lm",
+se = FALSE,
+color = "red",
+size = .5)+
+labs(title = "Retornos do portfólio x Prêmio de Risco",
+x = "Prêmio de Risco",
+y = "Retornos do portfólio",
+caption = "teste")+
+theme_minimal()
+```
+
+## Option Tree Pricing
+
+-   É um modelo de valuation de opções. Considere uma opção de compra $C_t$ representando o ativo $S_t$. A opção possui um preço *strike* $C_0$ e expira em um período $T$, do qual $t < T$.
+
+-   O valor de uma opção ao expirar é: $C_T = max [S_T - C_0,0 ]$. Isto é, queremos ter uma diferença positiva entre o valor do nosso ativo $S$ e o preço *strike* $C_0$.
+
+-   O valor do nosso ativo tanto pode subir como descer ao longo do tempo. Dividindo o tempo em $n$ partes, teremos uma variação $\Delta$ a cada período.
+
+## Option Tree Pricing
+
+-   No caso, teremos:
+
+    $$ S_{t+\Delta} =\left\{ \begin{array}{rcl} {S_t+\sigma\sqrt{\Delta}}  \\ S_t-\sigma\sqrt{\Delta} \end{array}\right. $$
+
+-   Sendo $\sigma$ o parâmetro de volatilidade. Quanto maior o intervalo entre os períodos, maior a volatilidade.
+
+-   Lembrando que para encontrar a arbitragem de preços, descontamos o valor do ativo pela a taxa livre de risco $r$ .
+
+## Option Tree Pricing
+
+-   Entenda $\Delta$ como o fator de movimento do ativo.
+
+-   O movimento para cima do preço do ativo aumenta por um fator $u$, geralmente calculado por $u = e^{\sigma\sqrt{\Delta t}}$.
+
+-   O movimento para baixo do preço do ativo diminui por um fator $d$, geralmente calculado por $d = e^{-\sigma\sqrt{\Delta t}}$.
+
+## Option Tree Pricing
+
+-   Logo,
+
+    $$
+    S_t = \frac{1}{1+r}\bigg[\mathbb{Q}_{up}\bigg(S_t + \sigma\sqrt{\Delta}\bigg) + \mathbb{Q}_{down}\bigg(S_t - \sigma\sqrt{\Delta}\bigg)\bigg]
+    $$
+
+-   A partir deste resultado, temos:
+
+    $$
+    C_t = \frac{1}{1+r}\bigg[\mathbb{Q}_{up}C^{up}_{t+ \Delta} + \mathbb{Q}_{down}C^{down}_{t+ \Delta}\bigg]
+    $$
+
+-   $\mathbb{Q}_{up}$ e $\mathbb{Q}_{down}$ são, respectivamente, a probabilidade de subida e de queda.
+
+## Option Tree Pricing
+
+-   Vamos montar uma função para simular a utilização do modelo.
+
+``` r
+# Retorna um dataframe com a árvore binomial
+getBinomTree <- function(S0, K, vol, dT, r, qdiv, N_steps, isPut=F, isAmerican=F, 
+                         isAvgStrike=F, isKO=F, isChooser=F, H=NA, Kc=NA, Kp=NA, choose_t1=NA)
+{
+  # número de nós na nossa árvore
+  N_nodes <- (N_steps+1)*(1 + (N_steps+1))/2 # sum(1:(N_steps+1)) = n*(a_1 + a_n)/2 
+  
+  # diferença de tempo entre os nossos passos
+  dT_step <- dT/N_steps
+  
+  # fator de desconto entre um passo
+  D_step <- exp(-r*dT_step) 
+  
+  # fator de movimento de subida
+  u <- exp(vol*dT_step^0.5)
+  
+  # fator de movimento de queda
+  d <- 1/u 
+  
+  # probabilidade de movimento de subida em um mundo de risco neutro
+  p <- (exp((r - qdiv)*dT_step) - d)/(u - d)
+  
+  
+  df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P = NA)
+  if (isAmerican) {
+    df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P = NA, dP_Exerc = NA)
+  }
+  if (isChooser) {
+    df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P_Call = NA, P_Put = NA, P = NA)
+  }
+  
+  for (i in N_steps:0)
+  {
+    for (j in 0:i)
+    {
+      i_node <- (i+1)*(1+i+1)/2-j  # conseguindo id do nó
+      df$step[i_node] <- i  # passo temporal
+      df$N_u[i_node] <- j  # number of u multiplication
+      df$S[i_node] <- S0 * d^(i-j) * u^j # preço do ativo 
+      
+      # at terminal node - payoff at expir:
+      if (i == N_steps) 
+      {
+        df$P[i_node] <- ifelse(isPut, max(K - df$S[i_node], 0), max(df$S[i_node] - K, 0))
+        if (isAmerican)
+        {
+          df$dP_Exerc[i_node] <- 0
+        }
+        if (isAvgStrike)
+        {
+          Savg <- getAvgStrikes(S0, j, i-j, d, u) # valores médios do ativo representado ao longo de todos caminhos possíveis,
+          if (isPut) {
+            df$P[i_node] <- mean(pmax(Savg - df$S[i_node], 0))
+          } else {
+            df$P[i_node] <- mean(pmax(df$S[i_node] - Savg, 0))
+          }
+        }
+        if (isChooser)
+        {
+          df$P_Call[i_node] <- max(df$S[i_node] - Kc, 0)
+          df$P_Put[i_node] <- max(Kp - df$S[i_node], 0)
+          df$P[i_node] <- NA
+        }
+      } 
+      # Indução retrógada:
+      if (i < N_steps) 
+      { 
+        i_node_u <- ((i+1)+1)*(1+(i+1)+1)/2-(j+1) # Achar a id do nódulo de cima
+        i_node_d <- ((i+1)+1)*(1+(i+1)+1)/2-j     # Achar a id do nódulo de baixo
+        df$P[i_node] <- D_step * (p*df$P[i_node_u] + (1-p)*df$P[i_node_d])
+        if (isAmerican)
+        {
+          P_Exerc <- ifelse(isPut, max(K - df$S[i_node], 0), max(df$S[i_node] - K, 0))
+          df$dP_Exerc[i_node] <- P_Exerc - df$P[i_node]
+          df$P[i_node] <- max(df$P[i_node], P_Exerc)
+        }
+        if (isChooser)
+        {
+          df$P_Call[i_node] <- D_step * (p*df$P_Call[i_node_u] + (1-p)*df$P_Call[i_node_d])
+          df$P_Put[i_node] <- D_step * (p*df$P_Put[i_node_u] + (1-p)*df$P_Put[i_node_d])
+          if (i == round(choose_t1/(dT/N_steps), 0)){
+            df$P[i_node] <- max(df$P_Call[i_node], df$P_Put[i_node])
+          }
+        }
+      }
+      if (isKO)
+      {
+        if (isPut) {
+          if (df$S[i_node] >= H) { df$P[i_node] <- 0 }
+        } else {
+          if (df$S[i_node] <= H) { df$P[i_node] <- 0 }
+        }
+      }
+    }
+  }
+  return(df)
+}
+```
+
+```{r}
+# Retorna um dataframe com a árvore binomial
+getBinomTree <- function(S0, K, vol, dT, r, qdiv, N_steps, isPut=F, isAmerican=F, 
+                         isAvgStrike=F, isKO=F, isChooser=F, H=NA, Kc=NA, Kp=NA, choose_t1=NA)
+{
+  # número de nós na nossa árvore
+  N_nodes <- (N_steps+1)*(1 + (N_steps+1))/2 # sum(1:(N_steps+1)) = n*(a_1 + a_n)/2 
+  
+  # diferença de tempo entre os nossos passos
+  dT_step <- dT/N_steps
+  
+  # fator de desconto entre um passo
+  D_step <- exp(-r*dT_step) 
+  
+  # fator de movimento de subida
+  u <- exp(vol*dT_step^0.5)
+  
+  # fator de movimento de queda
+  d <- 1/u 
+  
+  # probabilidade de movimento de subida em um mundo de risco neutro
+  p <- (exp((r - qdiv)*dT_step) - d)/(u - d)
+  
+  
+  df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P = NA)
+  if (isAmerican) {
+    df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P = NA, dP_Exerc = NA)
+  }
+  if (isChooser) {
+    df <- data.frame(i_node = 1:N_nodes, step=NA, N_u = NA, S = NA, P_Call = NA, P_Put = NA, P = NA)
+  }
+  
+  for (i in N_steps:0)
+  {
+    for (j in 0:i)
+    {
+      i_node <- (i+1)*(1+i+1)/2-j  # conseguindo id do nó
+      df$step[i_node] <- i  # passo temporal
+      df$N_u[i_node] <- j  # number of u multiplication
+      df$S[i_node] <- S0 * d^(i-j) * u^j # preço do ativo 
+      
+      # at terminal node - payoff at expir:
+      if (i == N_steps) 
+      {
+        df$P[i_node] <- ifelse(isPut, max(K - df$S[i_node], 0), max(df$S[i_node] - K, 0))
+        if (isAmerican)
+        {
+          df$dP_Exerc[i_node] <- 0
+        }
+        if (isAvgStrike)
+        {
+          Savg <- getAvgStrikes(S0, j, i-j, d, u) # valores médios do ativo representado ao longo de todos caminhos possíveis,
+          if (isPut) {
+            df$P[i_node] <- mean(pmax(Savg - df$S[i_node], 0))
+          } else {
+            df$P[i_node] <- mean(pmax(df$S[i_node] - Savg, 0))
+          }
+        }
+        if (isChooser)
+        {
+          df$P_Call[i_node] <- max(df$S[i_node] - Kc, 0)
+          df$P_Put[i_node] <- max(Kp - df$S[i_node], 0)
+          df$P[i_node] <- NA
+        }
+      } 
+      # Indução retrógada:
+      if (i < N_steps) 
+      { 
+        i_node_u <- ((i+1)+1)*(1+(i+1)+1)/2-(j+1) # Achar a id do nódulo de cima
+        i_node_d <- ((i+1)+1)*(1+(i+1)+1)/2-j     # Achar a id do nódulo de baixo
+        df$P[i_node] <- D_step * (p*df$P[i_node_u] + (1-p)*df$P[i_node_d])
+        if (isAmerican)
+        {
+          P_Exerc <- ifelse(isPut, max(K - df$S[i_node], 0), max(df$S[i_node] - K, 0))
+          df$dP_Exerc[i_node] <- P_Exerc - df$P[i_node]
+          df$P[i_node] <- max(df$P[i_node], P_Exerc)
+        }
+        if (isChooser)
+        {
+          df$P_Call[i_node] <- D_step * (p*df$P_Call[i_node_u] + (1-p)*df$P_Call[i_node_d])
+          df$P_Put[i_node] <- D_step * (p*df$P_Put[i_node_u] + (1-p)*df$P_Put[i_node_d])
+          if (i == round(choose_t1/(dT/N_steps), 0)){
+            df$P[i_node] <- max(df$P_Call[i_node], df$P_Put[i_node])
+          }
+        }
+      }
+      if (isKO)
+      {
+        if (isPut) {
+          if (df$S[i_node] >= H) { df$P[i_node] <- 0 }
+        } else {
+          if (df$S[i_node] <= H) { df$P[i_node] <- 0 }
+        }
+      }
+    }
+  }
+  return(df)
+}
+```
+
+## Option Tree Pricing
+
+-   Agora, iremos simular uma opção americana, com os seguintes parâmetros:
+
+    -   $S_0$: 100
+
+    -   $C_0$: 105
+
+    -   $\sigma$: 15%
+
+    -   *Time to maturity* $T$: 1 ano
+
+    -   Taxa livre de risco $r$: 5%
+
+    -   Número de "passos": 5
+
+## Option Tree Pricing
+
+```{r}
+dta <- getBinomTree(S0=100, K=105, vol=0.15, dT=1, r=0.05, qdiv=0, N_steps=5, isPut=F, isAmerican=T)
+
+dta <- dta %>%
+  mutate(x = step, y = S) 
+
+# Função para encontrar as conexões entre os nós
+get_edges <- function(dta) {
+  edges <- data.frame()
+  for (i in 0:(max(dta$step) - 1)) {
+    for (j in 0:i) {
+      i_node <- (i+1)*(1+i+1)/2 - j
+      i_node_u <- ((i+1)+1)*(1+(i+1)+1)/2 - (j+1)
+      i_node_d <- ((i+1)+1)*(1+(i+1)+1)/2 - j
+      
+      edges <- rbind(edges, 
+                     data.frame(x = dta$x[i_node], y = dta$y[i_node], 
+                                xend = dta$x[i_node_u], yend = dta$y[i_node_u]),
+                     data.frame(x = dta$x[i_node], y = dta$y[i_node], 
+                                xend = dta$x[i_node_d], yend = dta$y[i_node_d]))
+    }
+  }
+  return(edges)
+}
+
+edges <- get_edges(dta)
+
+ggplot() +
+  geom_segment(data = edges, aes(x = x, y = y, xend = xend, yend = yend), color = "black") +
+  geom_point(data = dta, aes(x = x, y = y), color = "black", size = 2) +
+  labs(title = "Árvore Binomial de Preços da Opção",
+       x = "Passos de Tempo",
+       y = "Preço do Ativo") +
+  geom_text(data = dta, aes(x = x, y = y, label = round(S, 2)), vjust = -1, size = 3) +
+  theme_minimal() 
+```
+
+## Option Tree Pricing
+
+```{r}
+library(reactable)
+reactable(dta |> 
+            select(-3,-6,-x,-y) |> 
+            mutate(across(everything(), ~round(.x,digits = 2))) |> 
+            rename('id Nó' = i_node,
+                   'Passo' = step,
+                   'Preço St' = S,
+                   'Preço Opção' = P),
+          striped = T,
+          resizable = T, defaultPageSize = 5
+)
+```
+
+## Option Tree Pricing
+
+-   Se a opção estiver subvalorizada, é recomendado uma a compra da opção, e se estiver supervalorizada, então é recomendada uma operação de put da opção.
+-   Em resumo, encontramos o preço justo de uma opção, e a partir disso analisamos se há oportunidade de arbitragem ou não.
+
+## Referências
+
+-   VICOL, N. **binomial-tree-options-R: Pricing options via binomial trees: European, American, Chooser, Knock-Out, Average Strike**. \[s.l: s.n.\].
+
+-   HIRSA, A.; NEFTCI, S. N. **An introduction to the mathematics of financial derivatives**. 3. ed. \[s.l.\] Academic Press, 2013.
+
+-   SAMUELSON, P. A. Proof that properly anticipated prices fluctuate randomly. Em: **The World Scientific Handbook of Futures Markets**. \[s.l.\] WORLD SCIENTIFIC, 2015. p. 25–38.
+
+## Obrigado! {.center}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+
+```
