@@ -1,2 +1,2 @@
 # martingale_presentation
-slide_trabalho_martingale
+Apresentação que fiz sobre Martingales e Asset Pricing para a disciplina de Estatística Aplicada para USP/RP. =)
